@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Side2Switch : MonoBehaviour
@@ -12,19 +10,16 @@ public class Side2Switch : MonoBehaviour
     void Start()
     {
         Cam = Camera.main;
-        Player = GameObject.Find("Player");
-    }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+        Player = GameObject.Find("Player");
     }
 
     void OnTriggerEnter(Collider other)
     {
         Player.layer = 6;
+
         Cam.cullingMask = ~(1 << 7);
+
         Cam.cullingMask |= (1 << 6);
     }
 }

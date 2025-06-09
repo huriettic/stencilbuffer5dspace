@@ -4,25 +4,27 @@ using System.Collections;
 
 public class PlayerMove : MonoBehaviour
 {
-    public float lerpX;
-    public float lerpY;
-    public float snap = 25f;
-    public float rotationX;
-    public float rotationY;
-    public float lookAngle = 90f;
-    public float sensitivityX = 10f;
-    public float sensitivityY = 10f;
-    public float speed = 6f;
-    public float jumpHeight = 8f;
-    public float gravity = 20f;
-    
-    private CharacterController fpscontroller;
-    
-    private Vector3 moveDirection = Vector3.zero;
+    public float speed = 7f;
+    public float jumpHeight = 2f;
+    public float gravity = 5f;
+    public float sensitivity = 10f;
+    public float clampAngle = 90f;
+    public float smoothFactor = 25f;
+
+    private Vector2 targetRotation;
+    private Vector3 targetMovement;
+    private Vector2 currentRotation;
+    private Vector3 currentForce;
+
+    private Camera Cam;
+
+    private CharacterController Player;
 
     void Start()
     {
-        fpscontroller = GetComponent<CharacterController>();
+        Cam = Camera.main;
+
+        Player = GetComponent<CharacterController>();
     }
 
     void Awake()
@@ -32,39 +34,46 @@ public class PlayerMove : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetButton("Jump") && fpscontroller.isGrounded)
+        PlayerInput();
+    }
+
+    void FixedUpdate()
+    {
+        if (!Player.isGrounded)
         {
-            moveDirection.y = jumpHeight;
+            currentForce.y -= gravity * Time.deltaTime;
         }
-        else
-        {
-            moveDirection.y -= gravity * Time.deltaTime;
-        }
+    }
 
-        float mouseX = Input.GetAxis("Mouse X") * sensitivityX;
-        float mouseY = Input.GetAxis("Mouse Y") * sensitivityY;
-
-        rotationY += mouseX;
-        rotationX -= mouseY;
-
-        rotationX = Mathf.Clamp(rotationX, -lookAngle, lookAngle);
-        lerpX = Mathf.Lerp(lerpX, rotationX, snap * Time.deltaTime);
-        lerpY = Mathf.Lerp(lerpY, rotationY, snap * Time.deltaTime);
-
-        Camera.main.transform.rotation = Quaternion.Euler(lerpX, lerpY, 0);
-        transform.rotation = Quaternion.Euler(0, lerpY, 0);
-
-        float x = Input.GetAxis("Horizontal");
-        float z = Input.GetAxis("Vertical");
-
-        Vector3 move = transform.right * x + transform.forward * z;
-
-        fpscontroller.Move(move * speed * Time.deltaTime);
-        fpscontroller.Move(moveDirection * Time.deltaTime);
-
-        if (Input.GetKey("escape"))
+    public void PlayerInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
             Application.Quit();
         }
+        if (Input.GetKeyDown(KeyCode.Space) && Player.isGrounded)
+        {
+            currentForce.y = jumpHeight;
+        }
+
+        float mousex = Input.GetAxisRaw("Mouse X");
+        float mousey = Input.GetAxisRaw("Mouse Y");
+
+        targetRotation.x -= mousey * sensitivity;
+        targetRotation.y += mousex * sensitivity;
+
+        targetRotation.x = Mathf.Clamp(targetRotation.x, -clampAngle, clampAngle);
+
+        currentRotation = Vector2.Lerp(currentRotation, targetRotation, smoothFactor * Time.deltaTime);
+
+        Cam.transform.localRotation = Quaternion.Euler(currentRotation.x, 0f, 0f);
+        Player.transform.rotation = Quaternion.Euler(0f, currentRotation.y, 0f);
+
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+
+        targetMovement = (Player.transform.right * horizontal + Player.transform.forward * vertical).normalized;
+
+        Player.Move((targetMovement + currentForce) * speed * Time.deltaTime);
     }
 }
